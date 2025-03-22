@@ -10,6 +10,7 @@ We decided as a middle ground to work using react-native implement the OpenData 
 
 #### Dev Logs
 12:00 pm: Planning started and initial prototypes created
+
 12:55 pm: Created a basic template for the application
 
 5:20 pm: merged all branches to Josiah's then to merge into main once changes are fixed.
