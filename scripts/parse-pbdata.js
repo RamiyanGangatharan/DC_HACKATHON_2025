@@ -8,6 +8,9 @@ const feed = transit_realtime.FeedMessage.decode(buffer)
 
 const records = [];
 
+const toIso = (timestamp) =>
+  timestamp?.toNumber ? new Date(timestamp.toNumber() * 1000).toISOString() : null;
+
 feed.entity.forEach(entity => {
   if (entity.tripUpdate) {
     const trip = entity.tripUpdate.trip;
@@ -16,8 +19,8 @@ feed.entity.forEach(entity => {
         trip_id: trip.tripId,
         route_id: trip.routeId,
         stop_id: update.stopId,
-        arrival_time: update.arrival?.time || null,
-        departure_time: update.departure?.time || null
+        arrival_time: toIso(update.arrival?.time),
+        departure_time: toIso(update.departure?.time)      
       });
     });
   }
@@ -39,7 +42,7 @@ feed.entity.forEach(entity => {
       longitude: position.longitude || null,
       bearing: position.bearing || null,
       speed: position.speed || null,
-      timestamp: vehicle.timestamp || null
+      timestamp: toIso(vehicle.timestamp || null)
     });
   }
 });
@@ -49,6 +52,6 @@ feed.entity.forEach(entity => {
 const csv = parse(records);
 
 // Write to file
-fs.writeFileSync("output.csv", csv);
+fs.writeFileSync("vehicle_positions.csv", csv);
 
 console.log("✅ CSV saved to output.csv");
