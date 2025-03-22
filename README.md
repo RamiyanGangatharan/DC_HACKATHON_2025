@@ -7,5 +7,7 @@ Project by Ramiyan Gangatharan, Maxwell Dinsmore, and Josiah Barbe.
 We set out unsure whether to do make a front-end bus tracking application, or an admin facing application for analysis.
 We decided as a middle ground to work using react-native implement the OpenData Data first before finalizing our product view.
 ---
-Dev Logs
 
+#### Dev Logs
+12:00 pm: Planning started and initial prototypes created
+12:55 pm: Created a basic template for the application
