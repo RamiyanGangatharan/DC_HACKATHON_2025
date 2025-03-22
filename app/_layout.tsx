@@ -5,11 +5,27 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
+import { PaperProvider, MD3LightTheme, useTheme} from 'react-native-paper';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+// SplashScreen.preventAutoHideAsync();
+
+
+const theme = {
+  ...MD3LightTheme, // or MD3DarkTheme
+  roundness: 2,
+  colors: {
+    ...MD3LightTheme.colors,
+    primary: '#00703C',
+    secondary: '#000000',
+    tertiary: '#616161',
+  }
+};
+export type AppTheme = typeof theme;
+
+export const useAppTheme = () => useTheme<AppTheme>();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -17,23 +33,18 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
+  
 
-  if (!loaded) {
-    return null;
-  }
 
+  
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    
+    <PaperProvider theme={theme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
-    </ThemeProvider>
+    </PaperProvider>
   );
 }
