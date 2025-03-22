@@ -2,13 +2,14 @@ import { StyleSheet, Platform, SafeAreaView, View, Pressable, Alert, Text } from
 import React, { useEffect, useState } from "react";
 import * as FileSystem from "expo-file-system";
 import { ThemedText } from "@/components/ThemedText";
+import { useAppTheme } from '../_layout';
 
 const filePath = `${FileSystem.documentDirectory}status.json`;
 
 export default function TabTwoScreen() {
     const [status, setStatus] = useState('');
-
-    const saveStatus = async (newStatus) => {
+    const theme = useAppTheme();
+    const saveStatus = async (newStatus: any) => {
         try {
             const fileExists = await FileSystem.getInfoAsync(filePath);
             let updatedData = fileExists.exists ? JSON.parse(await FileSystem.readAsStringAsync(filePath)) : [];
@@ -22,7 +23,7 @@ export default function TabTwoScreen() {
         }
     };
 
-    const handleStatusChange = (newStatus) => { setStatus(newStatus); saveStatus(newStatus); };
+    const handleStatusChange = (newStatus: any) => { setStatus(newStatus); saveStatus(newStatus); };
 
     const handleMedical = () => {
         Alert.alert(
@@ -47,11 +48,11 @@ export default function TabTwoScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.tertiary }]}>
             <ThemedText type="title">DRT Driver Dashboard</ThemedText>
             <ThemedText type="subtitle">Bus Status: {status}</ThemedText>
 
-            <View style={styles.buttonContainer}>
+            <View style={styles.buttonContainer }>
                 <Pressable style={styles.dashButton} onPress={() => handleStatusChange("DETOUR")}>
                     <Text style={styles.buttonText}>DETOUR</Text>
                 </Pressable>
@@ -81,7 +82,7 @@ export default function TabTwoScreen() {
 const styles = StyleSheet.create({
     container: {
         paddingTop: Platform.OS === "android" ? 100 : 0,
-        paddingHorizontal: 25,
+        paddingHorizontal: "7%",
     },
     buttonContainer: {
         justifyContent: "center",
@@ -89,7 +90,7 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
     },
     dashButton: {
-        width: 400,
+        width: "100%",
         height: 75,
         backgroundColor: "black",
         justifyContent: "center",
