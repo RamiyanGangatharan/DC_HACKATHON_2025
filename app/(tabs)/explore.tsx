@@ -1,5 +1,6 @@
 import { StyleSheet, Platform, SafeAreaView, View, Pressable, Alert, Text } from "react-native";
 import React, { useEffect, useState } from "react";
+import { useRouter } from 'expo-router';
 import * as FileSystem from "expo-file-system";
 import { ThemedText } from "@/components/ThemedText";
 import { useAppTheme } from '../_layout';
@@ -7,6 +8,7 @@ import { useAppTheme } from '../_layout';
 const filePath = `${FileSystem.documentDirectory}status.json`;
 
 export default function TabTwoScreen() {
+	const router = useRouter();
     const [status, setStatus] = useState('');
     const theme = useAppTheme();
     const saveStatus = async (newStatus: any) => {
@@ -27,10 +29,21 @@ export default function TabTwoScreen() {
 
     const handleMedical = () => {
         Alert.alert(
-            '', 'Are you sure you want to declare a medical emergency?',
+            '',
+            'Are you sure you want to declare a medical emergency?',
             [
-                { text: 'Cancel', onPress: () => console.log('Cancel Pressed'), style: 'cancel' },
-                { text: 'OK', onPress: () => handleStatusChange("MEDICAL EMERGENCY") },
+                {
+                    text: 'Cancel',
+                    onPress: () => console.log('Cancel Pressed'),
+                    style: 'cancel'
+                },
+                {
+                    text: 'OK',
+                    onPress: () => {
+                        handleStatusChange("MEDICAL EMERGENCY");
+                        router.push('/statusReason');
+                    }
+                },
             ],
             { cancelable: false }
         );
@@ -85,7 +98,6 @@ export default function TabTwoScreen() {
 const styles = StyleSheet.create({
     container: {
         paddingTop: Platform.OS === "android" ? 100 : 0,
-        paddingHorizontal: "7%",
     },
     topContainer: {
         height: "60%",
