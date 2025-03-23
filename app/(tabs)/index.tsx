@@ -48,7 +48,7 @@ const getClosestStop = async () => {
     
     // Use your computer's local IP address instead of localhost
     // This IP needs to be the IP address of the computer running your server
-    const serverIP = 'https://ed24-192-197-54-31.ngrok-free.app'; // Replace with your actual computer's IP address
+    const serverIP = 'https://26b8-192-197-54-31.ngrok-free.app'; // Replace with your actual computer's IP address
     
     // API call to the server endpoint
     const response = await fetch(`${serverIP}/stops/nearest/${location.latitude}/${location.longitude}`);
@@ -93,7 +93,7 @@ const getClosestStop = async () => {
     try {
       console.log('Fetching stops from API...');
     
-      const serverIP = 'https://ed24-192-197-54-31.ngrok-free.app'; 
+      const serverIP = 'https://26b8-192-197-54-31.ngrok-free.app'; 
     
     // API call to the server endpoint
       const response = await fetch(`${serverIP}/stops/`);
@@ -195,7 +195,7 @@ const fetchRoutesForStop = async (stopId: string) => {
   try {
     console.log(`Fetching routes for stop ${stopId}...`);
 
-    const serverIP = 'https://ed24-192-197-54-31.ngrok-free.app'; // Replace with your actual server IP
+    const serverIP = 'https://26b8-192-197-54-31.ngrok-free.app'; // Replace with your actual server IP
     const url = `${serverIP}/getTripUpdates/routesByStop/${stopId}`;
     console.log(`Request URL: ${url}`);
 
