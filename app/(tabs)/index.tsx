@@ -13,6 +13,7 @@ import {
 import Geolocation from 'react-native-geolocation-service';
 import MapView, { Marker } from 'react-native-maps';
 import { useAppTheme } from '../_layout';
+import Predict from "@/components/Predict";
 import { getClosestStopFromDatabase } from '../../data/database'; // Import the getClosestStopFromDatabase function
 interface Stop {
   stopID: string;
@@ -228,6 +229,15 @@ const getClosestStop = async () => {
           </View>
         </View>
       </Animated.ScrollView>
+      <View>
+        <Predict 
+              latitude={location.latitude} 
+              longitude={location.longitude} 
+              stop_lat={closestStop ? closestStop!.latitude : 43.943436} 
+              stop_lon={closestStop? closestStop!.longitude : -78.894964} 
+              stop_id={closestStop ? parseInt(closestStop!?.stopID) : 905} 
+              route_id={0} />
+        </View>
     </SafeAreaView>
   );
 }
