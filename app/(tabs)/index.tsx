@@ -8,18 +8,23 @@ import {
   ScrollView,
   Platform,
   PermissionsAndroid,
+  Button,
 } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
-import MapView from 'react-native-maps';
+import MapView, { Marker } from 'react-native-maps';
 import { useAppTheme } from '../_layout';
+import { findClosest, copyStopsFile  } from '../../scripts/closestStop'; // Import the findClosest function
 
+interface Stop {
+  stopID: string;
+  latitude: number;
+  longitude: number;
+}
 export default function HomeScreen() {
   const theme = useAppTheme();
   const defaultLocation = { latitude: 43.944033, longitude: -78.895080 };
-  const [location, setLocation] = useState<{ latitude: number; longitude: number }>({
-    latitude: defaultLocation.latitude,
-    longitude: defaultLocation.longitude,
-  });
+  const [location, setLocation] = useState(defaultLocation);
+  const [closestStop, setClosestStop] = useState<Stop | null>(null); // State for the closest stop
   const [focusedComponent, setFocusedComponent] = useState<'map' | 'scroll'>('map'); // Track focused component
 
   const mapRef = useRef<MapView>(null); // Reference to the MapView
@@ -31,31 +36,43 @@ export default function HomeScreen() {
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
       );
-      Geolocation.getCurrentPosition(
-        (position) => {
-          const newLocation = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          };
-          setLocation(newLocation);
 
-          // Animate the map to the new location
-          mapRef.current?.animateToRegion({
-            ...newLocation,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          });
-        },
-        (error) => {
-          console.error(error);
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-      );
-      if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+        console.log('Location permission granted');
+        moveToUserLocation();
+      } else {
         console.warn('Location permission denied');
-        return;
       }
     }
+  };
+
+  const moveToUserLocation = async () => {
+    Geolocation.getCurrentPosition(
+      async (position) => {
+        const newLocation = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        };
+        console.log('User location:', newLocation);
+        setLocation(newLocation);
+
+        // Animate the map to the user's current location
+        mapRef.current?.animateToRegion({
+          ...newLocation,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        });
+
+        // Find the closest stop
+        const closest = await findClosest(newLocation.latitude, newLocation.longitude);
+        console.log('Closest stop:', closest);
+        setClosestStop(closest);
+      },
+      (error) => {
+        console.error('Error getting location:', error);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+    );
   };
 
   useEffect(() => {
@@ -88,6 +105,19 @@ export default function HomeScreen() {
       }).start();
     }
   };
+  useEffect(() => {
+    copyStopsFile();
+  }, []);
+  const getClosestStop = async () => {
+    try {
+      console.log('Fetching closest stop...');
+      const closest = await findClosest(location.latitude, location.longitude);
+      console.log('Closest stop:', closest);
+      setClosestStop(closest);
+    } catch (error) {
+      console.error('Error finding closest stop:', error);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -109,8 +139,41 @@ export default function HomeScreen() {
             longitudeDelta: 0.05,
           }}
           style={{ flex: 1 }}
-		  showsUserLocation={true}
-        />
+          showsUserLocation={true}
+        >
+          {/* Add a marker at the user's current location */}
+          <Marker
+            coordinate={location}
+            title="Your Location"
+            description="This is your current location."
+          />
+
+          {/* Add a marker for the closest stop */}
+          {closestStop && (
+            <Marker
+              coordinate={{
+                latitude: closestStop.latitude,
+                longitude: closestStop.longitude,
+              }}
+              title="Closest Stop"
+              description={`Stop ID: ${closestStop.stopID}`}
+            />
+          )}
+        </MapView>
+        <View style={styles.locationButtonContainer}>
+          <Button
+            title="Go to My Location"
+            onPress={moveToUserLocation}
+            color="black"
+          />
+        </View>
+        <View style={styles.closestStopButtonContainer}>
+          <Button
+            title="Find Closest Stop"
+            onPress={getClosestStop}
+            color="blue" // Optional: Set button color
+          />
+        </View>
       </Animated.View>
 
       <Animated.ScrollView
@@ -125,8 +188,10 @@ export default function HomeScreen() {
       >
         <View style={styles.busContainer}>
           <View style={styles.rowContainer}>
-            <Text style={[styles.busText, {color: theme.colors.primary}]}>905</Text>
-            <Text style={[styles.statusText, {color: theme.colors.primary}]}>Bus Status: Operational</Text>
+            <Text style={[styles.busText, { color: theme.colors.primary }]}>905</Text>
+            <Text style={[styles.statusText, { color: theme.colors.primary }]}>
+              Bus Status: Operational
+            </Text>
           </View>
         </View>
       </Animated.ScrollView>
@@ -136,10 +201,26 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1, // Ensure the container takes up the full screen
+    flex: 1,
   },
   mapContainer: {
     width: '100%',
+  },
+  locationButtonContainer: {
+    position: 'absolute',
+    bottom: 80, // Adjust position to avoid overlap with the new button
+    right: 20,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 5,
+  },
+  closestStopButtonContainer: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 5,
   },
   busText: {
     fontSize: 40,
@@ -148,7 +229,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 16,
-    marginLeft: 10, // Add spacing between the two texts
+    marginLeft: 10,
   },
   busContainer: {
     width: '100%',
@@ -160,8 +241,8 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   rowContainer: {
-	height: 60,
-    flexDirection: 'row', // Align items horizontally
-    alignItems: 'center', // Vertically center the text
+    height: 60,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 });
