@@ -79,6 +79,13 @@ def enableProguardInReleaseBuilds = (findProperty('android.enableProguardInRelea
  * this variant is about 6MiB larger per architecture than default.
  */
 def jscFlavor = 'org.webkit:android-jsc:+'
+buildscript {
+ext {
+// .....
+playServicesLocationVersion = "21.0.1" // add this
+// .....
+}
+}
 
 android {
     ndkVersion rootProject.ext.ndkVersion

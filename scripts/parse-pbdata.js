@@ -1,5 +1,5 @@
 const GtfsRealtimeBindings = require ("gtfs-realtime-bindings")
-const { transit_realtime } = require("gtfs-realtime-bindings");
+const { transit_realtime } = require ("gtfs-realtime-bindings");
 const fs = require("fs")
 const { parse } = require("json2csv")
 
