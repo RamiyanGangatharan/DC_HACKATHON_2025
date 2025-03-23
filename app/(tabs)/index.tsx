@@ -10,6 +10,7 @@ import {
   PermissionsAndroid,
   Button,
 } from 'react-native';
+import axios from 'axios';
 import Geolocation from 'react-native-geolocation-service';
 import MapView, { Marker } from 'react-native-maps';
 import { useAppTheme } from '../_layout';
@@ -194,14 +195,24 @@ const fetchRoutesForStop = async (stopId: string) => {
     console.log(`Fetching routes for stop ${stopId}...`);
 
     const serverIP = '192.197.54.31'; // Replace with your actual server IP
-    const response = await fetch(`http://${serverIP}:5050/routesByStop/${stopId}`);
+    const url = `http://${serverIP}:5050/getTripUpdates/routesByStop/${stopId}`;
+    console.log(`Request URL: ${url}`);
 
-    if (!response.ok) {
-      throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+    // Use axios to fetch data
+    const response = await axios.get(url);
+
+    // Log the raw response
+    console.log(`Raw response for stop ${stopId}:`, response.data);
+
+    // Extract the data from the response
+    const data = response.data;
+
+    // Ensure the response contains a valid routes array
+    if (!data.routes || !Array.isArray(data.routes)) {
+      console.warn("Invalid API response format:", data);
+      setBuses([]); // Clear buses state if the response is invalid
+      return;
     }
-
-    const data = await response.json();
-    console.log(`Routes for stop ${stopId}:`, data.routes);
 
     // Map the routes to the buses state
     const mappedBuses = data.routes.map((route: string) => ({
@@ -210,15 +221,23 @@ const fetchRoutesForStop = async (stopId: string) => {
       busArrival: Math.floor(Math.random() * 30) + 1, // Example arrival time, replace with actual data
     }));
 
+    console.log("Mapped buses:", mappedBuses);
+
+    // Update the buses state
     setBuses(mappedBuses);
   } catch (error) {
     console.error(`Error fetching routes for stop ${stopId}:`, error);
+    setBuses([]); // Clear buses state on error
   }
 };
 
 useEffect(() => {
   fetchRoutesForStop("698"); // Fetch data for stop 698 when the component mounts
 }, []);
+
+useEffect(() => {
+  console.log("Updated buses state:", buses);
+}, [buses]);
 
   return (
     <SafeAreaView style={styles.container}>

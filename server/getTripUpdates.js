@@ -104,26 +104,38 @@ router.get("/routesByStop/:stopId", async (req, res) => {
 
     // Await the result of the distinct query
     const routes = await collection.distinct("route_id", { stop_id: stopId });
-
+    console.log(`Routes for stop_id ${stopId}:`, routes);
     res.status(200).json({ stop_id: stopId, routes });
+    
   } catch (error) {
     console.error("Error fetching routes by stop_id:", error);
     res.status(500).json({ error: "Failed to fetch routes" });
   }
 });
 
-const getRoutesByStopId = async (stopId) => {
+// const getRoutesByStopId = async (stopId) => {
+//     try {
+//       const collection = await dbConn.collection("tripUpdates");
+  
+//       // Query to find all documents with the specified stop_id
+//       const routes = await collection.distinct("route_id", { stop_id: stopId });
+  
+//       console.log(`Routes for stop_id ${stopId}:`, routes);
+//       return routes;
+//     } catch (error) {
+//       console.error("Error fetching routes by stop_id:", error);
+//       throw error;
+//     }
+//   };
+
+const fetchRoutesByStop = async (stopId) => {
     try {
-      const collection = await dbConn.collection("tripUpdates");
-  
-      // Query to find all documents with the specified stop_id
-      const routes = await collection.distinct("route_id", { stop_id: stopId });
-  
-      console.log(`Routes for stop_id ${stopId}:`, routes);
-      return routes;
+      const response = await fetch(`https://localhost:5050/routesByStop/${stopId}`);
+      const data = await response.json();
+      return data.routes; // Assuming `routes` is the key in the response
     } catch (error) {
-      console.error("Error fetching routes by stop_id:", error);
-      throw error;
+      console.error("Error fetching routes:", error);
+      return [];
     }
   };
 
