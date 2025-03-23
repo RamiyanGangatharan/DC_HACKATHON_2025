@@ -6,7 +6,7 @@ interface Stop {
 }
 import * as FileSystem from 'expo-file-system';
 import * as Asset from 'expo-asset';
-
+import * as SQLite from 'expo-sqlite';
 export const copyStopsFile = async () => {
   try {
     const asset = require('../static/stops.csv'); // Adjust the path to your stops.csv file

@@ -13,14 +13,16 @@ import {
 import Geolocation from 'react-native-geolocation-service';
 import MapView, { Marker } from 'react-native-maps';
 import { useAppTheme } from '../_layout';
-import { findClosest, copyStopsFile  } from '../../scripts/closestStop'; // Import the findClosest function
-
+import { getClosestStopFromDatabase } from '../../data/database'; // Import the getClosestStopFromDatabase function
 interface Stop {
   stopID: string;
   latitude: number;
   longitude: number;
 }
+
 export default function HomeScreen() {
+  
+
   const theme = useAppTheme();
   const defaultLocation = { latitude: 43.944033, longitude: -78.895080 };
   const [location, setLocation] = useState(defaultLocation);
@@ -31,6 +33,53 @@ export default function HomeScreen() {
   const mapHeight = useRef(new Animated.Value(0.8)).current; // Animated height for MapView
   const scrollHeight = useRef(new Animated.Value(0.2)).current; // Animated height for ScrollView
 
+const getClosestStop = async () => {
+  try {
+    console.log('Fetching closest stop from API...');
+    
+    // Use your computer's local IP address instead of localhost
+    // This IP needs to be the IP address of the computer running your server
+    const serverIP = '192.197.54.31'; // Replace with your actual computer's IP address
+    
+    // API call to the server endpoint
+    const response = await fetch(`http://${serverIP}:5050/stops/nearest/${location.latitude}/${location.longitude}`);
+    
+    if (!response.ok) {
+      throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+    }
+    
+    const closestStop = await response.json();
+    console.log('API response:', closestStop);
+
+    if (closestStop && closestStop.stop_id) {
+      console.log('Closest stop:', closestStop);
+      
+      // Update state with the returned stop
+      setClosestStop({
+        stopID: closestStop.stop_id,
+        latitude: parseFloat(closestStop.stop_lat),
+        longitude: parseFloat(closestStop.stop_lon),
+      });
+      
+      // Update the map to show both markers
+      mapRef.current?.fitToCoordinates(
+        [
+          { latitude: location.latitude, longitude: location.longitude },
+          { latitude: parseFloat(closestStop.stop_lat), longitude: parseFloat(closestStop.stop_lon) }
+        ],
+        {
+          edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+          animated: true,
+        }
+      );
+    } else {
+      console.log('No closest stop found or invalid response format');
+    }
+  } catch (error) {
+    console.error('Error finding closest stop from API:', error);
+  }
+};
+  
   const requestLocationPermission = async () => {
     if (Platform.OS === 'android') {
       const granted = await PermissionsAndroid.request(
@@ -63,10 +112,6 @@ export default function HomeScreen() {
           longitudeDelta: 0.01,
         });
 
-        // Find the closest stop
-        const closest = await findClosest(newLocation.latitude, newLocation.longitude);
-        console.log('Closest stop:', closest);
-        setClosestStop(closest);
       },
       (error) => {
         console.error('Error getting location:', error);
@@ -105,19 +150,7 @@ export default function HomeScreen() {
       }).start();
     }
   };
-  useEffect(() => {
-    copyStopsFile();
-  }, []);
-  const getClosestStop = async () => {
-    try {
-      console.log('Fetching closest stop...');
-      const closest = await findClosest(location.latitude, location.longitude);
-      console.log('Closest stop:', closest);
-      setClosestStop(closest);
-    } catch (error) {
-      console.error('Error finding closest stop:', error);
-    }
-  };
+
 
   return (
     <SafeAreaView style={styles.container}>
