@@ -21,6 +21,8 @@ const theme = {
     primary: '#00703C',
     secondary: '#000000',
     tertiary: '#616161',
+    backgroud: '#F5F5F5',
+    warning: '#ff0f0f',
   }
 };
 export type AppTheme = typeof theme;
@@ -38,7 +40,6 @@ export default function RootLayout() {
 
   
   return (
-    
     <PaperProvider theme={theme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

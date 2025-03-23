@@ -1,29 +1,35 @@
-import { Image, StyleSheet, Button,
-  Platform, SafeAreaView, PermissionsAndroid, View, Text } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import {
+  Animated,
+  StyleSheet,
+  SafeAreaView,
+  View,
+  Text,
+  ScrollView,
+  Platform,
+  PermissionsAndroid,
+} from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
-import { useEffect, useState, useRef } from 'react';
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 import MapView from 'react-native-maps';
-import { ScrollView } from 'react-native';
-import  useAppTheme  from './_layout';
+import { useAppTheme } from '../_layout';
+
 export default function HomeScreen() {
+  const theme = useAppTheme();
   const defaultLocation = { latitude: 43.944033, longitude: -78.895080 };
   const [location, setLocation] = useState<{ latitude: number; longitude: number }>({
-    latitude: defaultLocation.latitude, 
-    longitude: defaultLocation.longitude, 
+    latitude: defaultLocation.latitude,
+    longitude: defaultLocation.longitude,
   });
-
+  const [focusedComponent, setFocusedComponent] = useState<'map' | 'scroll'>('map'); // Track focused component
 
   const mapRef = useRef<MapView>(null); // Reference to the MapView
+  const mapHeight = useRef(new Animated.Value(0.8)).current; // Animated height for MapView
+  const scrollHeight = useRef(new Animated.Value(0.2)).current; // Animated height for ScrollView
 
   const requestLocationPermission = async () => {
     if (Platform.OS === 'android') {
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
-
       );
       Geolocation.getCurrentPosition(
         (position) => {
@@ -32,7 +38,7 @@ export default function HomeScreen() {
             longitude: position.coords.longitude,
           };
           setLocation(newLocation);
-  
+
           // Animate the map to the new location
           mapRef.current?.animateToRegion({
             ...newLocation,
@@ -50,64 +56,112 @@ export default function HomeScreen() {
         return;
       }
     }
-    
   };
 
   useEffect(() => {
     requestLocationPermission();
-  }, []); 
+  }, []);
+
+  // Animate height changes
+  const animateHeights = (focused: 'map' | 'scroll') => {
+    if (focused === 'map') {
+      Animated.timing(mapHeight, {
+        toValue: 6, 
+        duration: 500,
+        useNativeDriver: false,
+      }).start();
+      Animated.timing(scrollHeight, {
+        toValue: 0.2, // 20% height for ScrollView
+        duration: 500,
+        useNativeDriver: false,
+      }).start();
+    } else {
+      Animated.timing(mapHeight, {
+        toValue: 0.2, // 20% height for MapView
+        duration: 500,
+        useNativeDriver: false,
+      }).start();
+      Animated.timing(scrollHeight, {
+        toValue: 0.8, // 80% height for ScrollView
+        duration: 500,
+        useNativeDriver: false,
+      }).start();
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      <MapView 
-        ref={mapRef}
-        initialRegion={{
-          ...location,
-          latitudeDelta: defaultLocation.latitude,
-          longitudeDelta: 0.01,
+      <Animated.View
+        style={[
+          styles.mapContainer,
+          { flex: mapHeight }, // Use animated height for MapView
+        ]}
+        onTouchStart={() => {
+          setFocusedComponent('map');
+          animateHeights('map');
         }}
-        style={styles.map} 
-      />
-      <View style={styles.buttonContainer}>
-        <Button title="Zoom In" onPress={requestLocationPermission} />
-      </View>
-      <Button title="Reset" onPress={requestLocationPermission}/>
-      <ScrollView>
-      <View>
-        <Text>905 bus arriving at this time</Text>
-      </View>
-      </ScrollView>
+      >
+        <MapView
+          ref={mapRef}
+          initialRegion={{
+            ...location,
+            latitudeDelta: 0.05,
+            longitudeDelta: 0.05,
+          }}
+          style={{ flex: 1 }}
+		  showsUserLocation={true}
+        />
+      </Animated.View>
+
+      <Animated.ScrollView
+        style={[
+          { backgroundColor: theme.colors.tertiary },
+          { flex: scrollHeight }, // Use animated height for ScrollView
+        ]}
+        onTouchStart={() => {
+          setFocusedComponent('scroll');
+          animateHeights('scroll');
+        }}
+      >
+        <View style={styles.busContainer}>
+          <View style={styles.rowContainer}>
+            <Text style={[styles.busText, {color: theme.colors.primary}]}>905</Text>
+            <Text style={[styles.statusText, {color: theme.colors.primary}]}>Bus Status: Operational</Text>
+          </View>
+        </View>
+      </Animated.ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: Platform.OS === 'android' ? 100 : 0,
-    paddingLeft: Platform.OS === 'android' ? 25 : 0,
-    paddingRight: Platform.OS === 'android' ? 25 : 0,
+    flex: 1, // Ensure the container takes up the full screen
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-  map: {
+  mapContainer: {
     width: '100%',
-    height: '80%',
   },
-  buttonContainer: {
-    position: 'absolute',
-    top: 10, // Adjust the position as needed
-    right: 10, // Adjust the position as needed
-    backgroundColor: 'rgba(255, 255, 255, 0.8)', // Semi-transparent background
-    borderRadius: 8,
-    padding: 5,
+  busText: {
+    fontSize: 40,
+    fontFamily: 'Helvetica',
+    fontWeight: 'bold',
+  },
+  statusText: {
+    fontSize: 16,
+    marginLeft: 10, // Add spacing between the two texts
+  },
+  busContainer: {
+    width: '100%',
+    height: '50%',
+    backgroundColor: 'black',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 10,
+    marginTop: 20,
+  },
+  rowContainer: {
+	height: 60,
+    flexDirection: 'row', // Align items horizontally
+    alignItems: 'center', // Vertically center the text
   },
 });

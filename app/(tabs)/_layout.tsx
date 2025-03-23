@@ -43,6 +43,7 @@ export default function TabLayout() {
 				tabBarStyle: { backgroundColor: theme.colors.primary },
 			}}
 		/>
+		
 	</Tabs>
   );
 }
