@@ -10,16 +10,15 @@ import {
   PermissionsAndroid,
 } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
-import MapView from 'react-native-maps';
+import MapView, { Marker } from 'react-native-maps';
 import { useAppTheme } from '../_layout';
+import { findClosest } from '../../scripts/closestStop'; // Import the function
 
 export default function HomeScreen() {
   const theme = useAppTheme();
   const defaultLocation = { latitude: 43.944033, longitude: -78.895080 };
-  const [location, setLocation] = useState<{ latitude: number; longitude: number }>({
-    latitude: defaultLocation.latitude,
-    longitude: defaultLocation.longitude,
-  });
+  const [location, setLocation] = useState<{ latitude: number; longitude: number }>(defaultLocation);
+  const [closestStop, setClosestStop] = useState<{ stopID: string; latitude: number; longitude: number } | null>(null); // State for closest stop
   const [focusedComponent, setFocusedComponent] = useState<'map' | 'scroll'>('map'); // Track focused component
 
   const mapRef = useRef<MapView>(null); // Reference to the MapView
@@ -31,31 +30,37 @@ export default function HomeScreen() {
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
       );
-      Geolocation.getCurrentPosition(
-        (position) => {
-          const newLocation = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          };
-          setLocation(newLocation);
-
-          // Animate the map to the new location
-          mapRef.current?.animateToRegion({
-            ...newLocation,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          });
-        },
-        (error) => {
-          console.error(error);
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-      );
       if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
         console.warn('Location permission denied');
         return;
       }
     }
+
+    Geolocation.getCurrentPosition(
+      async (position) => {
+        const newLocation = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        };
+        setLocation(newLocation);
+
+        // Find the closest stop
+        const stop = await findClosest(newLocation.latitude, newLocation.longitude);
+        console.log(stop);
+        setClosestStop(stop);
+
+        // Animate the map to the new location
+        mapRef.current?.animateToRegion({
+          ...newLocation,
+          latitudeDelta: 0.001,
+          longitudeDelta: 0.001,
+        });
+      },
+      (error) => {
+        console.error(error);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+    );
   };
 
   useEffect(() => {
@@ -66,7 +71,7 @@ export default function HomeScreen() {
   const animateHeights = (focused: 'map' | 'scroll') => {
     if (focused === 'map') {
       Animated.timing(mapHeight, {
-        toValue: 6, 
+        toValue: 6,
         duration: 500,
         useNativeDriver: false,
       }).start();
@@ -103,14 +108,30 @@ export default function HomeScreen() {
       >
         <MapView
           ref={mapRef}
+          showsUserLocation={true}
+          showsMyLocationButton={true}
+          showsCompass={true}
+          followsUserLocation={true}
           initialRegion={{
             ...location,
-            latitudeDelta: 0.05,
-            longitudeDelta: 0.05,
+            latitudeDelta: 0.0005,
+            longitudeDelta: 0.0005,
           }}
           style={{ flex: 1 }}
-		  showsUserLocation={true}
-        />
+          
+        >
+          {/* Add a marker for the closest stop */}
+          {closestStop && (
+            <Marker
+              coordinate={{
+                latitude: closestStop.latitude,
+                longitude: closestStop.longitude,
+              }}
+              title={closestStop.stopID}
+              description="Closest Stop"
+            />
+          )}
+        </MapView>
       </Animated.View>
 
       <Animated.ScrollView
@@ -125,8 +146,8 @@ export default function HomeScreen() {
       >
         <View style={styles.busContainer}>
           <View style={styles.rowContainer}>
-            <Text style={[styles.busText, {color: theme.colors.primary}]}>905</Text>
-            <Text style={[styles.statusText, {color: theme.colors.primary}]}>Bus Status: Operational</Text>
+            <Text style={[styles.busText, { color: theme.colors.primary }]}>905</Text>
+            <Text style={[styles.statusText, { color: theme.colors.primary }]}>Bus Status: Operational</Text>
           </View>
         </View>
       </Animated.ScrollView>
@@ -160,7 +181,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   rowContainer: {
-	height: 60,
+    height: 60,
     flexDirection: 'row', // Align items horizontally
     alignItems: 'center', // Vertically center the text
   },
