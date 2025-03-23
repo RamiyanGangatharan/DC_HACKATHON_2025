@@ -10,6 +10,7 @@ import {
   PermissionsAndroid,
   Button,
 } from 'react-native';
+import axios from 'axios';
 import Geolocation from 'react-native-geolocation-service';
 import MapView, { Marker } from 'react-native-maps';
 import { useAppTheme } from '../_layout';
@@ -17,16 +18,23 @@ import Predict from "@/components/Predict";
 import { getClosestStopFromDatabase } from '../../data/database'; // Import the getClosestStopFromDatabase function
 interface Stop {
   stopID: string;
+  stopName?: string;
   latitude: number;
   longitude: number;
 }
 
+interface Bus {
+  busID: string;
+  busStatus: string;
+  busArrival: number;
+}
 export default function HomeScreen() {
-  
-
   const theme = useAppTheme();
   const defaultLocation = { latitude: 43.944033, longitude: -78.895080 };
   const [location, setLocation] = useState(defaultLocation);
+  const [stops, setStops] = useState<Stop[]>([]); // State to store all stops
+  const [buses, setBuses] = useState<Bus[]>([]); // State to store all stops
+
   const [closestStop, setClosestStop] = useState<Stop | null>(null); // State for the closest stop
   const [focusedComponent, setFocusedComponent] = useState<'map' | 'scroll'>('map'); // Track focused component
 
@@ -40,10 +48,10 @@ const getClosestStop = async () => {
     
     // Use your computer's local IP address instead of localhost
     // This IP needs to be the IP address of the computer running your server
-    const serverIP = '192.197.54.31'; // Replace with your actual computer's IP address
+    const serverIP = 'https://ed24-192-197-54-31.ngrok-free.app'; // Replace with your actual computer's IP address
     
     // API call to the server endpoint
-    const response = await fetch(`http://${serverIP}:5050/stops/nearest/${location.latitude}/${location.longitude}`);
+    const response = await fetch(`${serverIP}/stops/nearest/${location.latitude}/${location.longitude}`);
     
     if (!response.ok) {
       throw new Error(`Server returned ${response.status}: ${response.statusText}`);
@@ -81,6 +89,34 @@ const getClosestStop = async () => {
   }
 };
   
+  const displayStops = async () => {
+    try {
+      console.log('Fetching stops from API...');
+    
+      const serverIP = 'https://ed24-192-197-54-31.ngrok-free.app'; 
+    
+    // API call to the server endpoint
+      const response = await fetch(`${serverIP}/stops/`);
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+      }
+
+      const stopsData = await response.json();
+      console.log('Stops fetched from API:', stopsData);
+
+      // Update the state with the list of stops
+      const formattedStops = stopsData.map((stop: any) => ({
+        stopID: stop.stop_id,
+        stopName: stop.stop_name,
+        latitude: parseFloat(stop.stop_lat),
+        longitude: parseFloat(stop.stop_lon),
+      }));
+      setStops(formattedStops);
+    } catch (error) {
+      console.error('Error fetching stops from API:', error);
+    }
+  };
+
   const requestLocationPermission = async () => {
     if (Platform.OS === 'android') {
       const granted = await PermissionsAndroid.request(
@@ -123,6 +159,7 @@ const getClosestStop = async () => {
 
   useEffect(() => {
     requestLocationPermission();
+    displayStops(); // Fetch stops when the component mounts
   }, []);
 
   // Animate height changes
@@ -151,7 +188,57 @@ const getClosestStop = async () => {
       }).start();
     }
   };
+// 698
+// getRoutesByStopId
 
+const fetchRoutesForStop = async (stopId: string) => {
+  try {
+    console.log(`Fetching routes for stop ${stopId}...`);
+
+    const serverIP = 'https://ed24-192-197-54-31.ngrok-free.app'; // Replace with your actual server IP
+    const url = `${serverIP}/getTripUpdates/routesByStop/${stopId}`;
+    console.log(`Request URL: ${url}`);
+
+    // Use axios to fetch data
+    const response = await axios.get(url);
+
+    // Log the raw response
+    console.log(`Raw response for stop ${stopId}:`, response.data);
+
+    // Extract the data from the response
+    const data = response.data;
+
+    // Ensure the response contains a valid routes array
+    if (!data.routes || !Array.isArray(data.routes)) {
+      console.warn("Invalid API response format:", data);
+      setBuses([]); // Clear buses state if the response is invalid
+      return;
+    }
+
+    // Map the routes to the buses state
+    const mappedBuses = data.routes.map((route: string) => ({
+      busID: route,
+      busStatus: "On Time", // Example status, replace with actual data if available
+      busArrival: Math.floor(Math.random() * 30) + 1, // Example arrival time, replace with actual data
+    }));
+
+    console.log("Mapped buses:", mappedBuses);
+
+    // Update the buses state
+    setBuses(mappedBuses);
+  } catch (error) {
+    console.error(`Error fetching routes for stop ${stopId}:`, error);
+    setBuses([]); // Clear buses state on error
+  }
+};
+
+useEffect(() => {
+  fetchRoutesForStop("698"); // Fetch data for stop 698 when the component mounts
+}, []);
+
+useEffect(() => {
+  console.log("Updated buses state:", buses);
+}, [buses]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -193,6 +280,19 @@ const getClosestStop = async () => {
               description={`Stop ID: ${closestStop.stopID}`}
             />
           )}
+
+          {/* Add markers for all stops */}
+          {/* {stops.map((stop) => (
+            <Marker
+              key={stop.stopID}
+              coordinate={{
+                latitude: stop.latitude,
+                longitude: stop.longitude,
+              }}
+              title={stop.stopName}
+              description={`Stop ID: ${stop.stopID}`}
+            />
+          ))} */}
         </MapView>
         <View style={styles.locationButtonContainer}>
           <Button
@@ -220,14 +320,17 @@ const getClosestStop = async () => {
           animateHeights('scroll');
         }}
       >
-        <View style={styles.busContainer}>
+        {buses.map((bus) => (<View style={styles.busContainer}>
           <View style={styles.rowContainer}>
-            <Text style={[styles.busText, { color: theme.colors.primary }]}>905</Text>
+            <Text style={[styles.busText, { color: theme.colors.primary }]}>{bus.busID}</Text>
             <Text style={[styles.statusText, { color: theme.colors.primary }]}>
-              Bus Status: Operational
+              {bus.busStatus}
+            </Text>
+            <Text style={[styles.statusText, { color: theme.colors.primary }]}>
+              {bus.busArrival} mins
             </Text>
           </View>
-        </View>
+        </View>) )}
       </Animated.ScrollView>
       <View>
         <Predict 

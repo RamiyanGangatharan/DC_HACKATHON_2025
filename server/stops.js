@@ -3,6 +3,7 @@ import dbConn from './connect.js';
 
 import {ObjectId} from 'mongodb';
 
+
 const router = express.Router();
 
 router.get("/", async (req, res) => {
@@ -26,9 +27,8 @@ router.get("/:id", async (req, res) => {
 // Find the closest stop to coordinates
 router.get("/nearest/:lat/:lon", async (req, res) => {
     try {
-        const userLat = parseFloat(req.params.lat);
-        const userLon = parseFloat(req.params.lon);
-    
+            const userLat = parseFloat(req.params.lat);
+            const userLon = parseFloat(req.params.lon);
         // Validate coordinates
         if (isNaN(userLat) || isNaN(userLon)) {
             return res.status(400).json({ error: "Invalid coordinates" });
@@ -52,35 +52,34 @@ router.get("/nearest/:lat/:lon", async (req, res) => {
         const stopLon = parseFloat(stop.stop_lon);
 
         if (isNaN(stopLat) || isNaN(stopLon)) {
-        return; // Skip stops with invalid coordinates
+            return; // Skip stops with invalid coordinates
         }
 
         const dLat = toRadians(stopLat - userLat);
         const dLon = toRadians(stopLon - userLon);
-    const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRadians(userLat)) *
-    Math.cos(toRadians(stopLat)) *
-    Math.sin(dLon / 2) *
-    Math.sin(dLon / 2);
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRadians(userLat)) *
+        Math.cos(toRadians(stopLat)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
 
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distance = earthRadiusKm * c;
 
     if (distance < minDistance) {
-    minDistance = distance;
-    closestStop = {
-    ...stop,
-    distance: distance.toFixed(2) // Add distance in km
-    };
+        minDistance = distance;
+        closestStop = {
+            ...stop,
+            distance: distance.toFixed(2) // Add distance in km
+        };
     }
 });
 
-res.status(200).json(closestStop);
-} catch (error) {
-console.error("Error finding nearest stop:", error);
-res.status(500).json({ error: "Failed to find nearest stop" });
-}
+    res.status(200).json(closestStop);
+    } catch (error) {
+        console.error("Error finding nearest stop:", error);
+        res.status(500).json({ error: "Failed to find nearest stop" });
+    }
 });
 
 export default router;
